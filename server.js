@@ -2,6 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const express = require('express');
 const PORT = process.env.PORT || 3001;
 const app = express();
+const inputCheck = require('./utils/inputCheck');
 
 // express middleware
 app.use(express.urlencoded({ exteended: false }));
@@ -69,17 +70,31 @@ app.delete('/api/candidate/:id', (req, res) => {
     });
 });
 
-// // create a candidate
-// const sql = `INSERT INTO candidates (id, first_name, last_name, industry_connected) 
-//               VALUES (?,?,?,?)`;
-// const params = [1, 'Ronald', 'Firbank', 1];
-// // ES5 function, not arrow function, to use this
-// db.run(sql, params, function(err, result) {
-//     if (err) {
-//         console.log(err);
-//     }
-//     console.log(result, this.lastID);
-// })
+// create a candidate
+app.post('/api/candidate', ({ body }, res) => {
+    const errors = inputCheck(body, 'first_name', 'last_name', 'industry_connected');
+    if (errors) {
+        res.status(400).json({ error: errors });
+        return;
+    }
+    const sql = `INSERT INTO candidates (first_name, last_name, industry_connected)
+                    VALUES (?,?,?)`;
+    const params = [body.first_name, body.last_name, body.industry_connected];
+    // ES5 function, not arrow function, to use `this`
+    db.run(sql, params, function(err, result) {
+        if (err) {
+            res.status(400).json({ error: err.message });
+            return;
+        }
+
+        res.json({
+            message: 'sucess',
+            data: body,
+            id: this.lastID
+        });
+    });
+});
+
 
 // default response for any other request(Not Found) Catch all
 app.use((req, res) => {
